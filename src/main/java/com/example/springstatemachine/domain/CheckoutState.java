@@ -1,0 +1,5 @@
+package com.example.springstatemachine.domain;
+
+public enum CheckoutState {
+    CARD_VERIFICATION, CARD_DECLINED, CARD_APPROVED, SUFFICIENT_FUNDS, INSUFFICIENT_FUNDS, PAYMENT_APPROVED, PAYMENT_DECLINED
+}
