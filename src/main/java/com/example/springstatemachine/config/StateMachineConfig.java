@@ -2,8 +2,11 @@ package com.example.springstatemachine.config;
 
 import com.example.springstatemachine.domain.CheckoutEvent;
 import com.example.springstatemachine.domain.CheckoutState;
+import com.example.springstatemachine.services.PaymentServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.statemachine.action.Action;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
@@ -13,6 +16,7 @@ import org.springframework.statemachine.listener.StateMachineListenerAdapter;
 import org.springframework.statemachine.state.State;
 
 import java.util.EnumSet;
+import java.util.Random;
 
 @Slf4j
 @EnableStateMachineFactory
@@ -33,6 +37,7 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<CheckoutSt
     @Override
     public void configure(StateMachineTransitionConfigurer<CheckoutState, CheckoutEvent> transitions) throws Exception {
         transitions.withExternal().source(CheckoutState.CARD_VERIFICATION).target(CheckoutState.CARD_VERIFICATION).event(CheckoutEvent.VERIFYING_CARD)
+                .action(cardVerificationAction())
                 .and()
                 .withExternal().source(CheckoutState.CARD_VERIFICATION).target(CheckoutState.CARD_BALANCE).event(CheckoutEvent.APPROVED_CARD)
                 .and()
@@ -48,5 +53,24 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<CheckoutSt
             }
         };
         config.withConfiguration().listener(adapter);
+    }
+
+    //This was done to introduce a  random action that will either approve 80% of the time or Decline 20% of the time
+    public Action<CheckoutState, CheckoutEvent> cardVerificationAction(){
+        return  stateContext -> {
+            System.out.println("CARD VERIFICATION CALLED !! ");
+
+            if(new Random().nextInt(10) < 8){
+                System.out.println("Approved");
+                stateContext.getStateMachine().sendEvent(MessageBuilder.withPayload(CheckoutEvent.APPROVED_CARD)
+                        .setHeader(PaymentServiceImpl.PAYMENT_ID_HEADER, stateContext.getMessageHeader(PaymentServiceImpl.PAYMENT_ID_HEADER))
+                        .build());
+            }else{
+                System.out.println("Declined");
+                stateContext.getStateMachine().sendEvent(MessageBuilder.withPayload(CheckoutEvent.DECLINED_CARD)
+                        .setHeader(PaymentServiceImpl.PAYMENT_ID_HEADER, stateContext.getMessageHeader(PaymentServiceImpl.PAYMENT_ID_HEADER))
+                        .build());
+            }
+        };
     }
 }
