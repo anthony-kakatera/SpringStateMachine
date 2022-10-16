@@ -6,8 +6,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
+import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
+import org.springframework.statemachine.listener.StateMachineListenerAdapter;
+import org.springframework.statemachine.state.State;
 
 import java.util.EnumSet;
 
@@ -34,5 +37,16 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<CheckoutSt
                 .withExternal().source(CheckoutState.CARD_VERIFICATION).target(CheckoutState.CARD_BALANCE).event(CheckoutEvent.APPROVED_CARD)
                 .and()
                 .withExternal().source(CheckoutState.CARD_VERIFICATION).target(CheckoutState.CARD_REJECTED).event(CheckoutEvent.DECLINED_CARD);
+    }
+
+    @Override
+    public void configure(StateMachineConfigurationConfigurer<CheckoutState, CheckoutEvent> config) throws Exception {
+        StateMachineListenerAdapter<CheckoutState, CheckoutEvent> adapter = new StateMachineListenerAdapter<CheckoutState, CheckoutEvent>(){
+            @Override
+            public void stateChanged(State from, State to) {
+                log.info(String.format("*** StateChanged(from: %s, to %s)", from, to));
+            }
+        };
+        config.withConfiguration().listener(adapter);
     }
 }
