@@ -16,9 +16,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class PaymentServiceImpl implements PaymentService{
 
-    private static final String PAYMENT_ID_HEADER = "payment_id";
+    public static final String PAYMENT_ID_HEADER = "payment_id";
 
     private final PaymentRepository repository;
+
+    private final PaymentStateChangeInterceptor interceptor;
 
     private final StateMachineFactory<CheckoutState, CheckoutEvent> stateMachineFactory;
 
@@ -72,6 +74,7 @@ public class PaymentServiceImpl implements PaymentService{
 
         stateCheckoutEventStateMachine.getStateMachineAccessor()
                 .doWithAllRegions(sma -> {
+                    sma.addStateMachineInterceptor(interceptor);
                     sma.resetStateMachine(new DefaultStateMachineContext<>(payment.getCheckoutState(), null, null, null));
                 });
 
